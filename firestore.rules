@@ -1,0 +1,78 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // User Accounts collection with validation
+    match /userAccounts/{userId} {
+      allow read: if true;
+      allow create, update: if request.resource.data.id is string &&
+                              request.resource.data.name is string &&
+                              request.resource.data.email is string &&
+                              request.resource.data.role in ['admin', 'driver', 'student'];
+      allow delete: if false;
+    }
+
+    // Buses collection
+    match /buses/{busId} {
+      allow read: if true;
+      allow create, update: if request.resource.data.busNumber is string;
+      allow delete: if true;
+    }
+
+    // Routes collection
+    match /routes/{routeId} {
+      allow read: if true;
+      allow create, update: if request.resource.data.name is string;
+      allow delete: if true;
+    }
+
+    // Students collection
+    match /students/{studentId} {
+      allow read: if true;
+      allow create, update: if request.resource.data.name is string;
+      allow delete: if true;
+    }
+
+    // Fuel Logs collection
+    match /fuelLogs/{logId} {
+      allow read: if true;
+      allow create, update: if request.resource.data.busId is string;
+      allow delete: if false;
+    }
+
+    // Fuel Alerts collection
+    match /fuelAlerts/{alertId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if false;
+    }
+
+    // Special Trips collection
+    match /specialTrips/{tripId} {
+      allow read: if true;
+      allow create, update: if request.resource.data.tripName is string;
+      allow delete: if true;
+    }
+
+    // Fleet Alerts collection
+    match /fleetAlerts/{alertId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if true;
+    }
+
+    // Live GPS Telemetry Locations collection
+    match /liveLocations/{busId} {
+      allow read: if true;
+      allow create, update: if request.resource.data.busId is string;
+      allow delete: if false;
+    }
+
+    // Default fallback
+    match /{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}
+

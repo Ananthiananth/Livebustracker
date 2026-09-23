@@ -1,0 +1,268 @@
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Outfit', sans-serif;
+  }
+}
+
+/* =========================================================
+   THEME STYLING: LIGHT & DARK MODE SUPPORT
+   ========================================================= */
+
+/* Light Mode Defaults & Adaptations */
+html.light body {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+html.light .bg-slate-950 {
+  background-color: #f8fafc;
+  border-color: #e2e8f0;
+  color: #0f172a;
+}
+
+html.light .bg-slate-900 {
+  background-color: #ffffff;
+  border-color: #e2e8f0;
+  color: #0f172a;
+}
+
+html.light .bg-slate-850,
+html.light .bg-slate-800 {
+  background-color: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #1e293b;
+}
+
+html.light .bg-slate-700 {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+html.light .text-slate-100,
+html.light .text-slate-200 {
+  color: #0f172a;
+}
+
+html.light .text-slate-300 {
+  color: #334155;
+}
+
+html.light .text-slate-400 {
+  color: #64748b;
+}
+
+html.light .text-slate-500 {
+  color: #64748b;
+}
+
+html.light .border-slate-800,
+html.light .border-slate-700 {
+  border-color: #e2e8f0;
+}
+
+/* Light mode form controls */
+html.light input:not([type="checkbox"]):not([type="radio"]),
+html.light select,
+html.light textarea {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+html.light input:not([type="checkbox"]):not([type="radio"]):focus,
+html.light select:focus,
+html.light textarea:focus {
+  background-color: #ffffff !important;
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2) !important;
+}
+
+/* Modal overlays in light mode */
+html.light .backdrop-blur-md,
+html.light .bg-slate-950\/85,
+html.light .bg-slate-950\/80,
+html.light .bg-slate-950\/90 {
+  background-color: rgba(15, 23, 42, 0.45) !important;
+}
+
+/* High contrast preservation on amber & primary buttons */
+html.light .bg-amber-500,
+html.light .bg-amber-400 {
+  color: #020617 !important;
+}
+
+html.light .bg-amber-500 *,
+html.light .bg-amber-400 * {
+  color: inherit;
+}
+
+/* =========================================================
+   LEAFLET MAP STYLING (THEME-AWARE)
+   ========================================================= */
+
+/* Dark Theme Leaflet */
+.dark .leaflet-container {
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  background-color: #0f172a !important;
+  z-index: 1;
+}
+
+.dark .leaflet-popup-content-wrapper {
+  background-color: #0f172a !important;
+  color: #f1f5f9 !important;
+  border-radius: 14px !important;
+  border: 1px solid #334155 !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5) !important;
+  padding: 4px !important;
+}
+
+.dark .leaflet-popup-tip {
+  background-color: #0f172a !important;
+  border: 1px solid #334155 !important;
+}
+
+.dark .leaflet-control-zoom a {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
+.dark .leaflet-control-zoom a:hover {
+  background-color: #334155 !important;
+  color: #ffffff !important;
+}
+
+.dark .leaflet-control-attribution {
+  background: rgba(15, 23, 42, 0.75) !important;
+  color: #94a3b8 !important;
+  font-size: 10px !important;
+  border-radius: 4px;
+}
+
+.dark .leaflet-control-attribution a {
+  color: #38bdf8 !important;
+}
+
+/* Light Theme Leaflet */
+html.light .leaflet-container {
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  background-color: #f1f5f9 !important;
+  z-index: 1;
+}
+
+html.light .leaflet-popup-content-wrapper {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-radius: 14px !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.12), 0 4px 10px -3px rgba(0, 0, 0, 0.06) !important;
+  padding: 4px !important;
+}
+
+html.light .leaflet-popup-tip {
+  background-color: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+html.light .leaflet-control-zoom a {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light .leaflet-control-zoom a:hover {
+  background-color: #f1f5f9 !important;
+  color: #000000 !important;
+}
+
+html.light .leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.85) !important;
+  color: #64748b !important;
+  font-size: 10px !important;
+  border-radius: 4px;
+}
+
+html.light .leaflet-control-attribution a {
+  color: #0284c7 !important;
+}
+
+/* =========================================================
+   ANIMATIONS & EFFECTS
+   ========================================================= */
+
+/* Pulse animation for moving bus & active stop beacon */
+@keyframes bus-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 16px rgba(245, 158, 11, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
+}
+
+.bus-pulse-ring {
+  animation: bus-pulse 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+@keyframes stop-beacon {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+}
+
+.stop-beacon-anim {
+  animation: stop-beacon 1.8s infinite ease-in-out;
+}
+
+/* Custom subtle scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 3px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+html.light ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+html.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+html.light ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

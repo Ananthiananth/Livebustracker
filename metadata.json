@@ -1,0 +1,7 @@
+{
+  "name": "Live Tracker",
+  "description": "Real-time Live Tracker for college bus & fleet operations with multi-district GPS tracking (Tirunelveli, Madurai, Chennai, Coimbatore), student ETA countdown, fuel theft anomaly monitoring, and special venue dispatch.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

@@ -1,0 +1,186 @@
+{
+  "entities": {
+    "buses": {
+      "title": "Buses",
+      "description": "College transit buses with capacity, driver, route assignment, and telemetry status",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "busNumber": { "type": "string" },
+        "plateNumber": { "type": "string" },
+        "capacity": { "type": "number" },
+        "driverName": { "type": "string" },
+        "driverPhone": { "type": "string" },
+        "driverId": { "type": "string" },
+        "status": { "type": "string", "enum": ["on-route", "idle", "maintenance", "special-trip"] },
+        "assignedRouteId": { "type": "string" },
+        "currentStopId": { "type": "string" },
+        "fuelType": { "type": "string", "enum": ["Diesel", "Electric", "CNG"] },
+        "fuelPercentage": { "type": "number" },
+        "mileageKm": { "type": "number" },
+        "studentsEnrolled": { "type": "number" },
+        "districtId": { "type": "string" },
+        "lastMaintenanceDate": { "type": "string" },
+        "nextMaintenanceDue": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "busNumber", "plateNumber", "capacity", "driverName", "status", "assignedRouteId"]
+    },
+    "routes": {
+      "title": "Routes",
+      "description": "Transit routes with sequenced college stops and polyline coordinates",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "code": { "type": "string" },
+        "startLocation": { "type": "string" },
+        "endLocation": { "type": "string" },
+        "estimatedTime": { "type": "string" },
+        "stops": { "type": "array" },
+        "color": { "type": "string" },
+        "activeBusesCount": { "type": "number" },
+        "districtId": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "code", "stops"]
+    },
+    "students": {
+      "title": "Students",
+      "description": "Enrolled student passengers with bus stop assignment and real-time boarding state",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "rollNumber": { "type": "string" },
+        "department": { "type": "string" },
+        "year": { "type": "string" },
+        "busId": { "type": "string" },
+        "busNumber": { "type": "string" },
+        "routeId": { "type": "string" },
+        "stopId": { "type": "string" },
+        "stopName": { "type": "string" },
+        "parentName": { "type": "string" },
+        "parentPhone": { "type": "string" },
+        "parentEmail": { "type": "string" },
+        "status": { "type": "string", "enum": ["waiting-at-stop", "boarded", "alighted", "absent"] },
+        "boardedTime": { "type": "string" },
+        "alightedTime": { "type": "string" },
+        "districtId": { "type": "string" },
+        "avatar": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "rollNumber", "busId", "stopName", "parentPhone"]
+    },
+    "fuelLogs": {
+      "title": "FuelLogs",
+      "description": "Fuel dispensing, efficiency tracking, and odometer logs for college buses",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "busId": { "type": "string" },
+        "busNumber": { "type": "string" },
+        "driverName": { "type": "string" },
+        "litersFilled": { "type": "number" },
+        "totalCost": { "type": "number" },
+        "odometerKm": { "type": "number" },
+        "fuelStationName": { "type": "string" },
+        "fuelType": { "type": "string" },
+        "efficiencyKmPerL": { "type": "number" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "busId", "litersFilled", "totalCost", "odometerKm", "timestamp"]
+    },
+    "specialTrips": {
+      "title": "SpecialTrips",
+      "description": "Institutional industrial visits, sports meets, symposiums, and NSS camp trips",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "busId": { "type": "string" },
+        "busNumber": { "type": "string" },
+        "driverName": { "type": "string" },
+        "departureTime": { "type": "string" },
+        "returnTime": { "type": "string" },
+        "purpose": { "type": "string" },
+        "department": { "type": "string" },
+        "venueName": { "type": "string" },
+        "venueLat": { "type": "number" },
+        "venueLng": { "type": "number" },
+        "organizerName": { "type": "string" },
+        "organizerPhone": { "type": "string" },
+        "studentCount": { "type": "number" },
+        "status": { "type": "string", "enum": ["scheduled", "in-progress", "completed", "cancelled"] },
+        "districtId": { "type": "string" }
+      },
+      "required": ["id", "title", "busId", "departureTime", "venueName", "status"]
+    },
+    "fleetAlerts": {
+      "title": "FleetAlerts",
+      "description": "Real-time fleet safety notifications, route deviations, and delay broadcasts",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "busId": { "type": "string" },
+        "busNumber": { "type": "string" },
+        "type": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "severity": { "type": "string", "enum": ["info", "warning", "critical"] },
+        "read": { "type": "boolean" },
+        "category": { "type": "string" }
+      },
+      "required": ["id", "type", "title", "message", "timestamp", "severity"]
+    },
+    "liveLocations": {
+      "title": "LiveLocations",
+      "description": "Live GPS telemetry stream with speed, heading, and stop progression",
+      "type": "object",
+      "properties": {
+        "busId": { "type": "string" },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "speedKmph": { "type": "number" },
+        "headingDeg": { "type": "number" },
+        "timestamp": { "type": "string" },
+        "lastUpdated": { "type": "string" },
+        "currentStopName": { "type": "string" },
+        "nextStopName": { "type": "string" },
+        "etaToNextStopMinutes": { "type": "number" },
+        "occupancyCurrent": { "type": "number" },
+        "occupancyMax": { "type": "number" },
+        "isMoving": { "type": "boolean" }
+      },
+      "required": ["busId", "lat", "lng", "timestamp"]
+    },
+    "userAccounts": {
+      "title": "UserAccounts",
+      "description": "Registered user accounts for Admin, Driver, and Student/Parent roles",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string", "enum": ["student", "driver", "admin"] },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "collegeName": { "type": "string" },
+        "districtId": { "type": "string" },
+        "department": { "type": "string" },
+        "rollNumber": { "type": "string" },
+        "studentId": { "type": "string" },
+        "busId": { "type": "string" },
+        "designation": { "type": "string" },
+        "employeeId": { "type": "string" },
+        "isTransportManager": { "type": "boolean" },
+        "officialEmail": { "type": "string" },
+        "handoverDate": { "type": "string" },
+        "previousManagerName": { "type": "string" },
+        "password": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "role", "email"]
+    }
+  }
+}

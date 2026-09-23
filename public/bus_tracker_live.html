@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Campus Transit Tracker - Live System</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class'
+    };
+  </script>
+  
+  <!-- Leaflet CSS & JS for Real-time Maps -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  
+  <!-- React & Babel for Standalone Live Execution -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      background-color: #020617;
+      color: #f8fafc;
+      margin: 0;
+      padding: 0;
+    }
+    .leaflet-container {
+      width: 100%;
+      height: 100%;
+      background: #0f172a;
+      border-radius: 0.75rem;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // --- DISTRICT & CAMPUS LOCATIONS ---
+    const DISTRICTS = [
+      { id: "dist-01", name: "Tirunelveli Central Campus", code: "TN-72", center: [8.7280, 77.7280], zoom: 13 },
+      { id: "dist-02", name: "Madurai Regional Tech Hub", code: "TN-58", center: [9.9252, 78.1198], zoom: 13 },
+      { id: "dist-03", name: "Coimbatore Tech Campus", code: "TN-37", center: [11.0168, 76.9558], zoom: 13 },
+      { id: "dist-04", name: "Chennai Metropolitan Campus", code: "TN-01", center: [13.0827, 80.2707], zoom: 12 }
+    ];
+
+    // --- INITIAL DATA ---
+    const INITIAL_ROUTES = [
+      {
+        id: "route-01",
+        routeNumber: "R-101",
+        routeName: "Palayamkottai Express",
+        startPoint: "Vannarpettai Junction",
+        endPoint: "Central Campus Terminal",
+        totalDistanceKm: 18.5,
+        estimatedDurationMin: 35,
+        assignedBusId: "bus-01",
+        districtId: "dist-01",
+        stops: [
+          { id: "s-01", name: "Vannarpettai Circle", lat: 8.7360, lng: 77.7120, expectedMorningTime: "07:30 AM", expectedEveningTime: "05:00 PM" },
+          { id: "s-02", name: "Palayamkottai Bus Stand", lat: 8.7210, lng: 77.7340, expectedMorningTime: "07:45 AM", expectedEveningTime: "04:45 PM" },
+          { id: "s-03", name: "Sarah Tucker Point", lat: 8.7180, lng: 77.7420, expectedMorningTime: "07:55 AM", expectedEveningTime: "04:35 PM" },
+          { id: "s-04", name: "Central Campus Gate", lat: 8.7302, lng: 77.7280, expectedMorningTime: "08:15 AM", expectedEveningTime: "04:15 PM" }
+        ],
+        pathCoordinates: [
+          [8.7360, 77.7120],
+          [8.7290, 77.7210],
+          [8.7210, 77.7340],
+          [8.7180, 77.7420],
+          [8.7250, 77.7350],
+          [8.7302, 77.7280]
+        ]
+      },
+      {
+        id: "route-02",
+        routeNumber: "R-102",
+        routeName: "Tirunelveli Junction Shuttle",
+        startPoint: "Railway Junction",
+        endPoint: "Central Campus Terminal",
+        totalDistanceKm: 14.2,
+        estimatedDurationMin: 28,
+        assignedBusId: "bus-02",
+        districtId: "dist-01",
+        stops: [
+          { id: "s-05", name: "Tirunelveli Junction", lat: 8.7310, lng: 77.6990, expectedMorningTime: "07:35 AM", expectedEveningTime: "04:55 PM" },
+          { id: "s-06", name: "Kokkirakulam Bridge", lat: 8.7295, lng: 77.7140, expectedMorningTime: "07:50 AM", expectedEveningTime: "04:40 PM" },
+          { id: "s-07", name: "Central Campus Terminal", lat: 8.7302, lng: 77.7280, expectedMorningTime: "08:10 AM", expectedEveningTime: "04:20 PM" }
+        ],
+        pathCoordinates: [
+          [8.7310, 77.6990],
+          [8.7300, 77.7080],
+          [8.7295, 77.7140],
+          [8.7302, 77.7280]
+        ]
+      }
+    ];
+
+    const INITIAL_BUSES = [
+      {
+        id: "bus-01",
+        busNumber: "BUS-01",
+        registrationNumber: "TN-72-AZ-4091",
+        capacity: 55,
+        occupiedSeats: 48,
+        driverName: "Murugan Selvam",
+        driverPhone: "+91 98421 88401",
+        assignedRouteId: "route-01",
+        districtId: "dist-01",
+        currentFuelLiters: 92,
+        fuelTankCapacity: 120,
+        averageMileageKmpl: 4.8,
+        benchmarkMileageKmpl: 5.0,
+        status: "active"
+      },
+      {
+        id: "bus-02",
+        busNumber: "BUS-02",
+        registrationNumber: "TN-72-BY-1823",
+        capacity: 50,
+        occupiedSeats: 42,
+        driverName: "Karthik Raj",
+        driverPhone: "+91 97512 90123",
+        assignedRouteId: "route-02",
+        districtId: "dist-01",
+        currentFuelLiters: 78,
+        fuelTankCapacity: 100,
+        averageMileageKmpl: 4.5,
+        benchmarkMileageKmpl: 4.8,
+        status: "active"
+      }
+    ];
+
+    // --- APP ROOT COMPONENT ---
+    function App() {
+      const [currentUser, setCurrentUser] = useState(null);
+      const [isDark, setIsDark] = useState(true);
+      const [selectedDistrict, setSelectedDistrict] = useState(DISTRICTS[0]);
+      const [routes, setRoutes] = useState(INITIAL_ROUTES);
+      const [buses, setBuses] = useState(INITIAL_BUSES);
+      const [selectedBusId, setSelectedBusId] = useState(INITIAL_BUSES[0].id);
+      const [liveLocations, setLiveLocations] = useState({
+        "bus-01": {
+          busId: "bus-01",
+          busNumber: "BUS-01",
+          lat: 8.7290,
+          lng: 77.7210,
+          speedKmph: 38,
+          headingDeg: 85,
+          nextStopName: "Palayamkottai Bus Stand",
+          etaNextStopMin: 4,
+          isOffRoute: false,
+          delayMinutes: 0
+        },
+        "bus-02": {
+          busId: "bus-02",
+          busNumber: "BUS-02",
+          lat: 8.7300,
+          lng: 77.7080,
+          speedKmph: 32,
+          headingDeg: 95,
+          nextStopName: "Kokkirakulam Bridge",
+          etaNextStopMin: 3,
+          isOffRoute: false,
+          delayMinutes: 0
+        }
+      });
+      const [activeTab, setActiveTab] = useState("map"); // map, fleet, fuel, alerts
+      const [gpsSimulating, setGpsSimulating] = useState(true);
+
+      const mapRef = useRef(null);
+      const mapInstanceRef = useRef(null);
+      const tileLayerRef = useRef(null);
+      const markersRef = useRef({});
+      const routeLinesRef = useRef({});
+
+      // Apply theme to HTML document
+      useEffect(() => {
+        if (isDark) {
+          document.documentElement.classList.add('dark');
+          document.body.className = 'bg-slate-950 text-slate-100 min-h-screen';
+        } else {
+          document.documentElement.classList.remove('dark');
+          document.body.className = 'bg-slate-50 text-slate-900 min-h-screen';
+        }
+      }, [isDark]);
+
+      // Swap tile layers when theme changes
+      useEffect(() => {
+        if (!mapInstanceRef.current) return;
+        if (tileLayerRef.current) {
+          mapInstanceRef.current.removeLayer(tileLayerRef.current);
+        }
+        const tileUrl = isDark
+          ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+          : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+        
+        tileLayerRef.current = L.tileLayer(tileUrl, {
+          attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+        }).addTo(mapInstanceRef.current);
+      }, [isDark, currentUser]);
+
+      // Live GPS Simulation Loop
+      useEffect(() => {
+        if (!gpsSimulating) return;
+
+        let step = 0;
+        const interval = setInterval(() => {
+          step++;
+          setLiveLocations(prev => {
+            const updated = { ...prev };
+            routes.forEach(route => {
+              const bus = buses.find(b => b.assignedRouteId === route.id);
+              if (bus && route.pathCoordinates.length > 1) {
+                const path = route.pathCoordinates;
+                const idx = (step % (path.length * 5)) / 5;
+                const baseIdx = Math.floor(idx);
+                const nextIdx = (baseIdx + 1) % path.length;
+                const factor = idx - baseIdx;
+
+                const lat = path[baseIdx][0] + (path[nextIdx][0] - path[baseIdx][0]) * factor;
+                const lng = path[baseIdx][1] + (path[nextIdx][1] - path[baseIdx][1]) * factor;
+
+                updated[bus.id] = {
+                  ...updated[bus.id],
+                  busId: bus.id,
+                  busNumber: bus.busNumber,
+                  lat,
+                  lng,
+                  speedKmph: Math.floor(30 + Math.sin(step) * 12),
+                  etaNextStopMin: Math.max(1, 6 - (step % 5))
+                };
+              }
+            });
+            return updated;
+          });
+        }, 2000);
+
+        return () => clearInterval(interval);
+      }, [gpsSimulating, routes, buses]);
+
+      // Initialize Leaflet Map
+      useEffect(() => {
+        if (!currentUser) return;
+        if (!mapRef.current) return;
+
+        if (!mapInstanceRef.current) {
+          const map = L.map(mapRef.current, { zoomControl: false }).setView(selectedDistrict.center, selectedDistrict.zoom);
+          
+          L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+          }).addTo(map);
+
+          L.control.zoom({ position: 'bottomright' }).addTo(map);
+          mapInstanceRef.current = map;
+        }
+
+        const map = mapInstanceRef.current;
+        map.setView(selectedDistrict.center, selectedDistrict.zoom);
+
+        // Draw Route Polylines
+        Object.values(routeLinesRef.current).forEach(line => line.remove());
+        routeLinesRef.current = {};
+
+        routes.forEach(r => {
+          if (r.districtId === selectedDistrict.id) {
+            const poly = L.polyline(r.pathCoordinates, {
+              color: '#3b82f6',
+              weight: 5,
+              opacity: 0.8,
+              lineJoin: 'round'
+            }).addTo(map);
+            routeLinesRef.current[r.id] = poly;
+
+            // Draw Stop Markers
+            r.stops.forEach((stop, sIdx) => {
+              const stopIcon = L.divIcon({
+                className: 'custom-stop-icon',
+                html: `<div style="background:#0f172a; border:2px solid #38bdf8; color:#fff; width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:bold; box-shadow:0 2px 6px rgba(0,0,0,0.5);">${sIdx + 1}</div>`,
+                iconSize: [22, 22],
+                iconAnchor: [11, 11]
+              });
+              L.marker([stop.lat, stop.lng], { icon: stopIcon })
+                .bindPopup(`<b>${stop.name}</b><br/>Expected Morning: ${stop.expectedMorningTime}`)
+                .addTo(map);
+            });
+          }
+        });
+
+      }, [currentUser, selectedDistrict, routes]);
+
+      // Update Realtime Bus Markers
+      useEffect(() => {
+        if (!mapInstanceRef.current) return;
+        const map = mapInstanceRef.current;
+
+        Object.entries(liveLocations).forEach(([busId, loc]) => {
+          const bus = buses.find(b => b.id === busId);
+          if (!bus) return;
+
+          const isSelected = selectedBusId === busId;
+          const busHtml = `
+            <div style="background:${isSelected ? '#f59e0b' : '#10b981'}; color:#0f172a; padding:4px 8px; border-radius:9999px; font-weight:800; font-size:11px; border:2px solid #fff; box-shadow:0 4px 10px rgba(0,0,0,0.6); display:flex; align-items:center; gap:4px; white-space:nowrap;">
+              🚌 ${bus.busNumber} • ${loc.speedKmph} km/h
+            </div>
+          `;
+
+          const busIcon = L.divIcon({
+            className: 'bus-marker-div',
+            html: busHtml,
+            iconSize: [80, 26],
+            iconAnchor: [40, 13]
+          });
+
+          if (!markersRef.current[busId]) {
+            const marker = L.marker([loc.lat, loc.lng], { icon: busIcon }).addTo(map);
+            marker.on('click', () => setSelectedBusId(busId));
+            markersRef.current[busId] = marker;
+          } else {
+            markersRef.current[busId].setLatLng([loc.lat, loc.lng]);
+            markersRef.current[busId].setIcon(busIcon);
+          }
+        });
+      }, [liveLocations, selectedBusId, buses]);
+
+      // --- LOGIN VIEW ---
+      if (!currentUser) {
+        return (
+          <div className="min-h-screen flex items-center justify-center p-4 bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 relative transition-colors">
+            {/* Theme Toggle Button */}
+            <button
+              onClick={() => setIsDark(!isDark)}
+              className="absolute top-4 right-4 px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-200 shadow hover:border-amber-400 transition flex items-center gap-1.5"
+            >
+              <span>{isDark ? '🌙' : '☀️'}</span>
+              <span>{isDark ? 'Dark' : 'Light'}</span>
+            </button>
+
+            <div className="w-full max-w-md bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 shadow-2xl backdrop-blur-md">
+              <div className="text-center mb-8">
+                <div className="w-16 h-16 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner">
+                  🚌
+                </div>
+                <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
+                  CAMPUS <span className="text-amber-500 dark:text-amber-400">TRANSIT</span>
+                </h1>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Real-time GPS Fleet Telemetry & Student Portal</p>
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Select Your Portal To Sign In</p>
+                
+                <button
+                  onClick={() => setCurrentUser({ role: 'student', name: 'Ananthi S', id: 'stu-01', roll: '23CS108' })}
+                  className="w-full p-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700/80 border border-slate-200 dark:border-slate-700 text-left transition flex items-center justify-between group shadow-sm"
+                >
+                  <div>
+                    <div className="font-bold text-slate-900 dark:text-slate-100 text-sm group-hover:text-amber-500">Student & Parent Portal</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">Track bus route, live ETA, stop schedule</div>
+                  </div>
+                  <span className="text-xl text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-transform">→</span>
+                </button>
+
+                <button
+                  onClick={() => setCurrentUser({ role: 'driver', name: 'Murugan Selvam', id: 'drv-01', busId: 'bus-01' })}
+                  className="w-full p-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700/80 border border-slate-200 dark:border-slate-700 text-left transition flex items-center justify-between group shadow-sm"
+                >
+                  <div>
+                    <div className="font-bold text-slate-900 dark:text-slate-100 text-sm group-hover:text-emerald-500">Driver Telemetry Console</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">GPS waypoint navigation, passenger check-in</div>
+                  </div>
+                  <span className="text-xl text-slate-400 group-hover:text-emerald-500 group-hover:translate-x-1 transition-transform">→</span>
+                </button>
+
+                <button
+                  onClick={() => setCurrentUser({ role: 'admin', name: 'Transport Officer', id: 'adm-01' })}
+                  className="w-full p-4 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-left transition flex items-center justify-between group shadow-sm"
+                >
+                  <div>
+                    <div className="font-bold text-amber-500 dark:text-amber-400 text-sm">Transport Admin Command</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">Fleet telemetry, fuel logs, route manager</div>
+                  </div>
+                  <span className="text-xl text-amber-500 dark:text-amber-400 group-hover:translate-x-1 transition-transform">→</span>
+                </button>
+              </div>
+
+              <div className="mt-8 text-center text-[11px] text-slate-500 border-t border-slate-800/80 pt-4">
+                Self-Contained Standalone Campus Transit System
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      const activeBus = buses.find(b => b.id === selectedBusId) || buses[0];
+      const activeLoc = liveLocations[selectedBusId] || liveLocations["bus-01"];
+      const activeRoute = routes.find(r => r.id === activeBus?.assignedRouteId);
+
+      // --- MAIN APPLICATION VIEW ---
+      return (
+        <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
+          {/* Header */}
+          <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-3 sticky top-0 z-50 flex items-center justify-between shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-lg">
+                🚌
+              </div>
+              <div>
+                <h1 className="font-extrabold text-base text-slate-900 dark:text-slate-100 flex items-center gap-1.5 leading-tight">
+                  CAMPUS <span className="text-amber-500 dark:text-amber-400">TRANSIT</span>
+                </h1>
+                <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping inline-block"></span>
+                  <span>Live GPS Connected</span>
+                </div>
+              </div>
+            </div>
+
+            {/* District Selector & User Info */}
+            <div className="flex items-center gap-3">
+              <select
+                value={selectedDistrict.id}
+                onChange={e => {
+                  const d = DISTRICTS.find(x => x.id === e.target.value);
+                  if (d) setSelectedDistrict(d);
+                }}
+                className="bg-slate-100 dark:bg-slate-800 text-xs border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-amber-400"
+              >
+                {DISTRICTS.map(d => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+
+              {/* Theme Toggle Button */}
+              <button
+                onClick={() => setIsDark(!isDark)}
+                className="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 hover:border-amber-400 transition flex items-center gap-1"
+                title={`Switch to ${isDark ? 'Light' : 'Dark'} mode`}
+              >
+                <span>{isDark ? '🌙' : '☀️'}</span>
+                <span className="hidden sm:inline">{isDark ? 'Dark' : 'Light'}</span>
+              </button>
+
+              <div className="hidden sm:flex items-center gap-2 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 px-3 py-1 rounded-lg text-xs">
+                <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200 capitalize">{currentUser.role}:</span>
+                <span className="text-slate-500 dark:text-slate-400">{currentUser.name}</span>
+              </div>
+
+              <button
+                onClick={() => setCurrentUser(null)}
+                className="text-xs px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-950/40 hover:bg-red-200 dark:hover:bg-red-900/60 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-800/50 transition font-medium"
+              >
+                Sign Out
+              </button>
+            </div>
+          </header>
+
+          {/* Main Content Layout */}
+          <div className="flex-1 flex flex-col lg:flex-row p-3 gap-3 overflow-hidden">
+            {/* Left/Main Section: Live Map */}
+            <div className="flex-1 flex flex-col bg-slate-900 border border-slate-800 rounded-xl overflow-hidden min-h-[400px]">
+              <div className="p-3 border-b border-slate-800 flex items-center justify-between bg-slate-900/90 text-xs font-semibold">
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-300">Active Campus Map:</span>
+                  <span className="text-amber-400 font-bold">{selectedDistrict.name}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setGpsSimulating(!gpsSimulating)}
+                    className={`px-2.5 py-1 rounded text-[11px] font-bold ${gpsSimulating ? 'bg-emerald-950 text-emerald-300 border border-emerald-700' : 'bg-slate-800 text-slate-400'}`}
+                  >
+                    {gpsSimulating ? '● GPS Active' : '○ GPS Paused'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Map Container */}
+              <div className="flex-1 relative">
+                <div ref={mapRef} className="absolute inset-0"></div>
+              </div>
+            </div>
+
+            {/* Right Sidebar: Telemetry & Bus Details */}
+            <div className="w-full lg:w-96 flex flex-col gap-3">
+              {/* Active Bus Card */}
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h3 className="font-bold text-slate-100 text-sm flex items-center gap-2">
+                      <span>🚌</span> {activeBus?.busNumber}
+                    </h3>
+                    <p className="text-[11px] text-slate-400">{activeBus?.registrationNumber}</p>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700">
+                    EN ROUTE
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                  <div className="bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/80">
+                    <span className="text-[10px] text-slate-400 block uppercase">Speed</span>
+                    <span className="font-bold text-slate-100 text-base">{activeLoc?.speedKmph} <span className="text-xs font-normal text-slate-400">km/h</span></span>
+                  </div>
+                  <div className="bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/80">
+                    <span className="text-[10px] text-slate-400 block uppercase">Next Stop ETA</span>
+                    <span className="font-bold text-amber-400 text-base">{activeLoc?.etaNextStopMin} <span className="text-xs font-normal text-slate-400">min</span></span>
+                  </div>
+                </div>
+
+                <div className="bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/80 text-xs mb-3">
+                  <span className="text-[10px] text-slate-400 block uppercase">Approaching Stop</span>
+                  <span className="font-semibold text-slate-200">{activeLoc?.nextStopName || 'Campus Main Terminal'}</span>
+                </div>
+
+                <div className="text-[11px] text-slate-400 flex items-center justify-between border-t border-slate-800/80 pt-2.5">
+                  <span>Driver: <strong className="text-slate-200">{activeBus?.driverName}</strong></span>
+                  <span>{activeBus?.driverPhone}</span>
+                </div>
+              </div>
+
+              {/* Fleet List & Quick Switcher */}
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex-1 flex flex-col">
+                <h3 className="font-bold text-slate-200 text-xs uppercase tracking-wider mb-2.5">
+                  Fleet in {selectedDistrict.code}
+                </h3>
+                <div className="space-y-2 overflow-y-auto max-h-56 custom-scrollbar pr-1">
+                  {buses.filter(b => b.districtId === selectedDistrict.id).map(bus => {
+                    const loc = liveLocations[bus.id];
+                    const isSel = bus.id === selectedBusId;
+                    return (
+                      <div
+                        key={bus.id}
+                        onClick={() => setSelectedBusId(bus.id)}
+                        className={`p-2.5 rounded-lg border text-xs cursor-pointer transition flex items-center justify-between ${isSel ? 'bg-amber-500/10 border-amber-500/40 text-amber-300' : 'bg-slate-950/40 border-slate-800 text-slate-300 hover:bg-slate-800/50'}`}
+                      >
+                        <div>
+                          <div className="font-bold">{bus.busNumber} • {bus.driverName}</div>
+                          <div className="text-[10px] text-slate-400">{bus.registrationNumber}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-mono text-[11px] font-bold text-emerald-400">{loc?.speedKmph || 0} km/h</div>
+                          <div className="text-[10px] text-slate-400">ETA: {loc?.etaNextStopMin || '--'}m</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
